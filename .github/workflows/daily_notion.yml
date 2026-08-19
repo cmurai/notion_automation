@@ -1,0 +1,30 @@
+name: Daily Notion Automation
+
+on:
+  schedule:
+    # Trigger every day at midnight UTC (00:00 UTC)
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Allows you to manually click "Run workflow" to test it anytime
+
+jobs:
+  run-notion-script:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v4
+
+      - name: Set up Python Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Notion Client
+        run: |
+          pip install notion-client
+
+      - name: Execute Automation Script
+        env:
+          # Pulls the hidden token from GitHub settings securely
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+        run: python subscription_automation.py
