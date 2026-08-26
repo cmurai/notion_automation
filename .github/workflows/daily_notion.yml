@@ -12,19 +12,22 @@ jobs:
 
     steps:
       - name: Checkout repository code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - name: Set up Python Environment
-        uses: actions/setup-python@v5
+      - name: Set up Node.js environment
+        uses: actions/setup-node@v7
         with:
-          python-version: '3.10'
+          node-version: '24'
 
-      - name: Install Notion Client
-        run: |
-          pip install notion-client
+      - name: Install Notion API dependency
+        run: npm install @notionhq/client
 
       - name: Execute Automation Script
         env:
           # Pulls the hidden token from GitHub settings securely
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-        run: python subscription_automation.py
+          SUBSC_DATA_SOURCE_ID: ${{ secrets.SUBSC_DATA_SOURCE_ID }}
+          EXPENSE_DATA_SOURCE_ID: ${{ secrets.EXPENSE_DATA_SOURCE_ID }}
+          HH_USD_DATA_SOURCE_ID: ${{ secrets.HH_USD_DATA_SOURCE_ID }}
+          HH_JPY_DATA_SOURCE_ID: ${{ secrets.HH_JPY_DATA_SOURCE_ID }}
+        run: node notion_automation.js
