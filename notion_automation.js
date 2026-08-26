@@ -39,90 +39,94 @@ async function main() {
             }
         })
 
-        // for each candidate, create a page in the corresponding database
-        for (const item of response.results) {
-            const db_type = item.properties.Household.checkbox ? "household" : "personal";
-            const currency = item.properties.JPY.number === null ? "USD" : "JPY";
-            const ds_id = db_type === "personal" 
-                ? EXPENSE_DATA_SOURCE_ID : currency === "USD" 
-                ? HH_USD_DATA_SOURCE_ID : HH_JPY_DATA_SOURCE_ID
-            const expense_response = await notion.dataSources.retrieve({
-                data_source_id: ds_id
-            });
+        if (response.results.length === 0) {
+            console.log("No item to add today. See you tomorrow!")
+        } else {
+            // for each candidate, create a page in the corresponding database
+            for (const item of response.results) {
+                const db_type = item.properties.Household.checkbox ? "household" : "personal";
+                const currency = item.properties.JPY.number === null ? "USD" : "JPY";
+                const ds_id = db_type === "personal" 
+                    ? EXPENSE_DATA_SOURCE_ID : currency === "USD" 
+                    ? HH_USD_DATA_SOURCE_ID : HH_JPY_DATA_SOURCE_ID
+                const expense_response = await notion.dataSources.retrieve({
+                    data_source_id: ds_id
+                });
 
-            // find corresponding month ID
-            const month = item.properties["Next Payment"].formula.string.substring(0,7)
-            const filter_month = await notion.dataSources.query({
-                data_source_id: expense_response.properties.Month.relation.data_source_id,
-                filter: {
-                        property: "Month", 
-                        rich_text: {
-                            contains: month
-                    }
-                }
-            })
-            const month_id = filter_month.results[0].id
-
-            // define json for the new page to be added
-            let page_json = {
-                "parent": {
-                    "type": "data_source_id",
-                    "data_source_id": ds_id
-                }, 
-                "properties": {
-                    "Name": {
-                        "id": "title",
-                        "type": "title",
-                        "title": [{
-                            "type": "text",
-                            "text": {
-                                "content": item.properties.Name.title[0].text.content
-                            }
-                        }]
-                    },
-                    "Date": {
-                        "date": {
-                            "start": item.properties["Next Payment"].formula.string.replaceAll("/","-")
+                // find corresponding month ID
+                const month = item.properties["Next Payment"].formula.string.substring(0,7)
+                const filter_month = await notion.dataSources.query({
+                    data_source_id: expense_response.properties.Month.relation.data_source_id,
+                    filter: {
+                            property: "Month", 
+                            rich_text: {
+                                contains: month
                         }
-                    },
-                    "Month": {
-                        "relation": [{
-                            "id": month_id
-                        }]
+                    }
+                })
+                const month_id = filter_month.results[0].id
+
+                // define json for the new page to be added
+                let page_json = {
+                    "parent": {
+                        "type": "data_source_id",
+                        "data_source_id": ds_id
                     }, 
-                    "Category": {
-                        "select": {
-                            "name": item.properties.Category.select.name
+                    "properties": {
+                        "Name": {
+                            "id": "title",
+                            "type": "title",
+                            "title": [{
+                                "type": "text",
+                                "text": {
+                                    "content": item.properties.Name.title[0].text.content
+                                }
+                            }]
+                        },
+                        "Date": {
+                            "date": {
+                                "start": item.properties["Next Payment"].formula.string.replaceAll("/","-")
+                            }
+                        },
+                        "Month": {
+                            "relation": [{
+                                "id": month_id
+                            }]
+                        }, 
+                        "Category": {
+                            "select": {
+                                "name": item.properties.Category.select.name
+                            }
+                        },
+                        "Account": {
+                            "relation": [{
+                                "id": item.properties.Account.relation[0].id
+                            }]
                         }
-                    },
-                    "Account": {
-                        "relation": [{
-                            "id": item.properties.Account.relation[0].id
-                        }]
                     }
                 }
-            }
 
-            if (db_type === "household") {
-                page_json.properties["Bought by"] = {
-                    "select": {
-                        "name": "🐱 ちえ"
+                if (db_type === "household") {
+                    page_json.properties["Bought by"] = {
+                        "select": {
+                            "name": "🐱 ちえ"
+                        }
+                    }
+                    page_json.properties.Price = {
+                        "number": item.properties[currency].number
+                    }
+                } else {
+                    page_json.properties[currency] = {
+                        "number": item.properties[currency].number
+                    }
+                    page_json["template"] = {
+                        type: "default"
                     }
                 }
-                page_json.properties.Price = {
-                    "number": item.properties[currency].number
-                }
-            } else {
-                page_json.properties[currency] = {
-                    "number": item.properties[currency].number
-                }
-                page_json["template"] = {
-                    type: "default"
-                }
+                
+                const creatation = await notion.pages.create(page_json);
+                console.log(`Success! Entry created: ${creatation.id}`);
             }
-            
-            const creatation = await notion.pages.create(page_json);
-            console.log(`Success! Entry created: ${creatation.id}`);
         }
     } catch (error) {
         console.error("Error creating Notion page:", error.body || error); 
