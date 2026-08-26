@@ -31,8 +31,8 @@ async function main() {
                     {
                         property: "Next Payment",
                         formula: {
-                            // string: { contains: "2026/08" }  // for testing
-                            string: { contains: formattedTomorrow }
+                            string: { contains: "2026/08" }  // for testing
+                            // string: { contains: formattedTomorrow }
                         }
                     }
                 ]
