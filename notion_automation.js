@@ -31,8 +31,8 @@ async function main() {
                     {
                         property: "Next Payment",
                         formula: {
-                            // string: { contains: "2026/08" }  // for testing
-                            string: { contains: formattedTomorrow }
+                            string: { contains: "2026/08" }  // for testing
+                            // string: { contains: formattedTomorrow }
                         }
                     }
                 ]
@@ -98,26 +98,33 @@ async function main() {
                                 "name": item.properties.Category.select.name
                             }
                         },
-                        "Account": {
-                            "relation": [{
-                                "id": item.properties.Account.relation[0].id
-                            }]
-                        }
+                    }
+                }
+
+                if (item.properties.Account.relation.length > 0) {
+                    page_json.properties["Account"] = {
+                        "relation": [{
+                            "id": item.properties.Account.relation[0].id
+                        }]
                     }
                 }
 
                 if (db_type === "household") {
                     page_json.properties["Bought by"] = {
                         "select": {
-                            "name": "🐱 ちえ"
+                            "name": item.properties["Bought by"].select.name
                         }
                     }
-                    page_json.properties.Price = {
-                        "number": item.properties[currency].number
+                    if (item.properties[currency].number > 0) {
+                        page_json.properties.Price = {
+                            "number": item.properties[currency].number
+                        }
                     }
                 } else {
-                    page_json.properties[currency] = {
-                        "number": item.properties[currency].number
+                    if (item.properties[currency].number > 0) {
+                        page_json.properties[currency] = {
+                            "number": item.properties[currency].number
+                        }
                     }
                     page_json["template"] = {
                         type: "default"
